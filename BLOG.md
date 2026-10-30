@@ -221,4 +221,6 @@ less accurate.
 
 ---
 
+**S1 pipeline trace visualization:** [yqx1412.github.io/agent-ecosystem](https://yqx1412.github.io/agent-ecosystem/)
+
 *Code: [agentos](https://github.com/yqx1412/agentos) · [domaingraph](https://github.com/yqx1412/domaingraph) · [agentmesh](https://github.com/yqx1412/agentmesh)*
