@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S1 — End-to-End Demo Pipeline Trace</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      padding: 32px 16px 64px;
+    }
+
+    .page { max-width: 860px; margin: 0 auto; }
+
+    /* ── header ── */
+    .page-header { margin-bottom: 36px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .page-header p  { font-size: .9rem; color: #6b7280; line-height: 1.6; }
+    .page-header a  { color: #2563eb; text-decoration: none; }
+    .page-header a:hover { text-decoration: underline; }
+
+    /* ── section heading ── */
+    .section-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: #9ca3af; margin-bottom: 10px;
+    }
+
+    /* ── legend ── */
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: #374151; }
+    .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── timeline bar ── */
+    .tl {
+      display: flex; gap: 2px; height: 30px;
+      border-radius: 8px; overflow: hidden; margin-bottom: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .tl-seg {
+      display: flex; align-items: center; justify-content: center;
+      font-size: .68rem; font-weight: 700; color: #fff;
+      overflow: hidden; white-space: nowrap; padding: 0 7px;
+    }
+    .tl-seg span { overflow: hidden; text-overflow: ellipsis; }
+    .tl-orch { background: #7c3aed; }
+    .tl-know { background: #2563eb; }
+    .tl-res  { background: #059669; }
+    .tl-ver  { background: #d97706; }
+
+    /* ── step cards ── */
+    .steps { display: grid; gap: 12px; margin-bottom: 20px; }
+    .step {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .step-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px;
+    }
+    .badge {
+      width: 30px; height: 30px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .step-title { font-size: .9rem; font-weight: 700; }
+    .step-meta  { font-size: .75rem; color: #6b7280; margin-top: 1px; }
+    .step-dur   { margin-left: auto; font-size: .8rem; font-weight: 700; color: #374151; white-space: nowrap; }
+    .step-dur small { font-weight: 400; color: #9ca3af; }
+
+    .step-body {
+      padding: 11px 16px 14px;
+      border-top: 1px solid #f3f4f6;
+      background: #fafafa;
+    }
+    .io-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 580px) { .io-row { grid-template-columns: 1fr; } }
+    .io-box {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 7px; padding: 9px 11px;
+    }
+    .io-label {
+      font-size: .67rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: #9ca3af; margin-bottom: 5px;
+    }
+    .io-text { font-size: .8rem; line-height: 1.5; color: #374151; }
+    .io-text code { font-family: monospace; font-size: .78em; background: #f3f4f6; border-radius: 3px; padding: 1px 4px; }
+
+    /* agent colour keys */
+    .orch { background: #7c3aed; }
+    .know { background: #2563eb; }
+    .res  { background: #059669; }
+    .ver  { background: #d97706; }
+
+    /* ── facts section ── */
+    .facts {
+      border-radius: 10px; border: 1px solid #e5e7eb;
+      background: #fff; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .facts-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px;
+    }
+    .fact-list {
+      padding: 12px 16px 16px;
+      border-top: 1px solid #f3f4f6;
+      background: #fafafa;
+      display: grid; gap: 10px;
+    }
+    .fact { display: flex; gap: 10px; align-items: flex-start; }
+    .fact-id {
+      font-size: .7rem; font-weight: 800;
+      background: #dbeafe; color: #1d4ed8;
+      border-radius: 5px; padding: 2px 7px; margin-top: 1px; flex-shrink: 0;
+    }
+    .fact-text { font-size: .82rem; line-height: 1.5; color: #111827; }
+    .fact-src  { font-size: .73rem; color: #9ca3af; margin-top: 2px; }
+
+    /* ── footer ── */
+    .footer {
+      margin-top: 40px; padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      font-size: .78rem; color: #9ca3af;
+    }
+    .footer a { color: #6b7280; }
+    .footer a:hover { color: #374151; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>S1 — End-to-End Demo Pipeline Trace</h1>
+    <p>
+      A live run of the <a href="https://github.com/yqx1412/agent-ecosystem">agent-ecosystem</a>
+      showcase milestone: given the 10-lecture MIT 6.006 knowledge base, find which AVL-tree
+      concepts lack web-sourced facts, research them, verify the claims, and write the supported
+      facts back through the M5 security chain — driven by a single natural-language task to the
+      orchestrator, no S1-specific code written.
+      Full write-up: <a href="https://github.com/yqx1412/agentmesh/blob/main/benchmarks/results/m6-single-vs-multi.md#s1-end-to-end-demo-2026-10-29">m6-single-vs-multi.md § S1</a> ·
+      Blog post: <a href="https://github.com/yqx1412/agent-ecosystem/blob/main/BLOG.md">BLOG.md</a>
+    </p>
+  </div>
+
+  <div class="section-label">Pipeline run · 2026-10-29 · agentmesh cid:c1e57ad · total 151 s</div>
+
+  <!-- legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Orchestrator (qwen3:14b)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Knowledge Agent · 9114 (qwen3:8b)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Research Agent · 9111 (qwen3:8b)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Verifier Agent · 9113 (qwen3:14b)</div>
+  </div>
+
+  <!-- timeline: plan=24.1 s1=12.7 s2=24.3 s3=54.8 s4=20.3 combine=15.0 total=151.2 -->
+  <div class="tl">
+    <div class="tl-seg tl-orch" style="width:15.9%"><span>Plan 24 s</span></div>
+    <div class="tl-seg tl-know" style="width:8.4%"><span>s1 13 s</span></div>
+    <div class="tl-seg tl-res"  style="width:16.1%"><span>s2 24 s</span></div>
+    <div class="tl-seg tl-ver"  style="width:36.2%"><span>s3 Verify 55 s</span></div>
+    <div class="tl-seg tl-know" style="width:13.4%"><span>s4 20 s</span></div>
+    <div class="tl-seg tl-orch" style="width:9.9%"><span>Combine</span></div>
+  </div>
+
+  <div class="steps">
+
+    <!-- Plan -->
+    <div class="step">
+      <div class="step-head">
+        <div class="badge orch">✦</div>
+        <div>
+          <div class="step-title">Plan</div>
+          <div class="step-meta">Orchestrator · qwen3:14b</div>
+        </div>
+        <div class="step-dur">+0 s → +24 s</div>
+      </div>
+      <div class="step-body">
+        <div class="io-row">
+          <div class="io-box">
+            <div class="io-label">Task (natural language)</div>
+            <div class="io-text">Given the 10-lecture MIT 6.006 knowledge base, find which AVL-tree concepts lack web-sourced facts, research them, verify the claims, and store the supported ones.</div>
+          </div>
+          <div class="io-box">
+            <div class="io-label">4-step plan produced</div>
+            <div class="io-text">
+              s1 → <strong>knowledge_lookup</strong> (Knowledge Agent)<br>
+              s2 → <strong>web_research</strong> (Research Agent, after s1)<br>
+              s3 → <strong>claim_verification</strong> (Verifier Agent, after s2)<br>
+              s4 → <strong>knowledge_write</strong> (Knowledge Agent, after s3)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- s1 -->
+    <div class="step">
+      <div class="step-head">
+        <div class="badge know">K</div>
+        <div>
+          <div class="step-title">s1 · knowledge_lookup</div>
+          <div class="step-meta">Knowledge Agent · port 9114 · qwen3:8b · DomainGraph MCP</div>
+        </div>
+        <div class="step-dur">+24 s → +37 s <small>(13 s)</small></div>
+      </div>
+      <div class="step-body">
+        <div class="io-row">
+          <div class="io-box">
+            <div class="io-label">Query</div>
+            <div class="io-text">Find all facts about AVL trees, rotation, balance factor, rebalancing, and height. Report whether each fact has a source URL (i.e. a web source, not just lecture notes).</div>
+          </div>
+          <div class="io-box">
+            <div class="io-label">Result → 5 gaps identified</div>
+            <div class="io-text">No web-sourced facts found for any of the five concepts. All existing entries come from lecture notes only. <strong>All 5 confirmed as knowledge gaps.</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- s2 -->
+    <div class="step">
+      <div class="step-head">
+        <div class="badge res">R</div>
+        <div>
+          <div class="step-title">s2 · web_research</div>
+          <div class="step-meta">Research Agent · port 9111 · qwen3:8b · fetch_url enforced in code</div>
+        </div>
+        <div class="step-dur">+37 s → +61 s <small>(24 s)</small></div>
+      </div>
+      <div class="step-body">
+        <div class="io-row">
+          <div class="io-box">
+            <div class="io-label">Sources fetched</div>
+            <div class="io-text">
+              en.wikipedia.org/wiki/AVL_tree (×3)<br>
+              geeksforgeeks.org/avl-tree-set-1-insertion
+            </div>
+          </div>
+          <div class="io-box">
+            <div class="io-label">5 claims produced</div>
+            <div class="io-text">
+              1. Self-balancing BST, heights differ ≤ 1 <em>[Wikipedia]</em><br>
+              2. Balance factor = height diff of child subtrees <em>[Wikipedia]</em><br>
+              3. Balance factor ±2 → repaired by rotation <em>[Wikipedia]</em><br>
+              4. Four rotation variants: LL, RR, LR, RL <em>[GeeksForGeeks]</em><br>
+              5. Height O(log n) with golden-ratio bound <em>[Wikipedia]</em>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- s3 -->
+    <div class="step">
+      <div class="step-head">
+        <div class="badge ver">V</div>
+        <div>
+          <div class="step-title">s3 · claim_verification</div>
+          <div class="step-meta">Verifier Agent · port 9113 · qwen3:14b · fetch_url + Ed25519 signing</div>
+        </div>
+        <div class="step-dur">+61 s → +116 s <small>(55 s)</small></div>
+      </div>
+      <div class="step-body">
+        <div class="io-row">
+          <div class="io-box">
+            <div class="io-label">Verdicts</div>
+            <div class="io-text">
+              1. <strong style="color:#059669">SUPPORTED</strong> — balance factor definition<br>
+              2. <strong style="color:#059669">SUPPORTED</strong> — ±2 triggers rotation<br>
+              3. <strong style="color:#059669">SUPPORTED</strong> — four rotation variants<br>
+              4. <strong style="color:#059669">SUPPORTED</strong> — height formula
+            </div>
+          </div>
+          <div class="io-box">
+            <div class="io-label">M5 attestation chain</div>
+            <div class="io-text">Each verdict includes a verbatim quote and is signed with the Verifier's Ed25519 key. The orchestrator passes the signed payload to s4. Knowledge Agent's <code>knowledge_write</code> skill requires <code>require_attestation = "verifier"</code> — no signature, no write.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- s4 -->
+    <div class="step">
+      <div class="step-head">
+        <div class="badge know">K</div>
+        <div>
+          <div class="step-title">s4 · knowledge_write</div>
+          <div class="step-meta">Knowledge Agent · port 9114 · qwen3:8b · DomainGraph MCP · add_fact gated</div>
+        </div>
+        <div class="step-dur">+116 s → +136 s <small>(20 s)</small></div>
+      </div>
+      <div class="step-body">
+        <div class="io-row">
+          <div class="io-box">
+            <div class="io-label">add_fact calls</div>
+            <div class="io-text">
+              <code>add_fact(id=323)</code> → <strong>ok</strong><br>
+              <code>add_fact(id=324)</code> → <strong>ok</strong><br>
+              <code>add_fact(id=325)</code> → <strong>ok</strong><br>
+              <code>add_fact(id=326)</code> → <strong>ok</strong>
+            </div>
+          </div>
+          <div class="io-box">
+            <div class="io-label">DomainGraph state after write</div>
+            <div class="io-text">600 concepts · 3,297 facts (was 3,293) · scope <code>knowledge</code> · 4 new facts now have web sources</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <!-- facts written -->
+  <div class="facts">
+    <div class="facts-head">
+      <div class="badge know" style="font-size:.9rem">✓</div>
+      <div>
+        <div class="step-title">4 facts written to DomainGraph</div>
+        <div class="step-meta">Confirmed via list_facts(scope='knowledge') after the run · scope: knowledge · source: web</div>
+      </div>
+    </div>
+    <div class="fact-list">
+      <div class="fact">
+        <span class="fact-id">323</span>
+        <div>
+          <div class="fact-text">"In a binary tree the balance factor of a node X is defined to be the height difference of its two child sub-trees rooted by node X."</div>
+          <div class="fact-src">en.wikipedia.org/wiki/AVL_tree</div>
+        </div>
+      </div>
+      <div class="fact">
+        <span class="fact-id">324</span>
+        <div>
+          <div class="fact-text">"If the balance factor becomes ±2, this has to be repaired by an appropriate rotation."</div>
+          <div class="fact-src">en.wikipedia.org/wiki/AVL_tree</div>
+        </div>
+      </div>
+      <div class="fact">
+        <span class="fact-id">325</span>
+        <div>
+          <div class="fact-text">Four possible rotation variants to restore balance: LL, RR, LR (Left-Right), RL (Right-Left).</div>
+          <div class="fact-src">geeksforgeeks.org/avl-tree-set-1-insertion</div>
+        </div>
+      </div>
+      <div class="fact">
+        <span class="fact-id">326</span>
+        <div>
+          <div class="fact-text">The height of an AVL tree with n nodes is at most 1.44 log₂(n+2), bounded by the golden ratio φ.</div>
+          <div class="fact-src">en.wikipedia.org/wiki/AVL_tree</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>
+      Generated from
+      <a href="https://github.com/yqx1412/agentmesh">agentmesh</a> orchestrator trace
+      <code>20261029-231459-cf1cbbfe</code> ·
+      <a href="https://github.com/yqx1412/agent-ecosystem/blob/main/BLOG.md">Blog post</a> ·
+      <a href="https://github.com/yqx1412/agentmesh/blob/main/benchmarks/results/m6-single-vs-multi.md#s1-end-to-end-demo-2026-10-29">Full write-up</a> ·
+      <a href="https://github.com/yqx1412/agent-ecosystem">agent-ecosystem</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>
